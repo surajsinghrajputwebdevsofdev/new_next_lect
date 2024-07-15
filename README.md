@@ -739,3 +739,210 @@ module.exports = mongoose.model('TestResult', testResultSchema);
 
 
 export default ReportModel;
+
+
+
+
+
+// routes/testResults.js
+const express = require('express');
+const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
+const TestResult = require('../models/TestResult');
+const path = require('path');
+const fs = require('fs');
+const router = express.Router();
+
+const upload = multer({ dest: 'uploads/' });
+
+router.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    const { labId, name, date, patientNumber, age, sex, phoneNumber, results } = req.body;
+    const zipFileUrl = `uploads/${req.file.filename}`;
+
+    const newTestResult = new TestResult({
+      labId,
+      name,
+      date,
+      patientNumber,
+      age,
+      sex,
+      phoneNumber,
+      results: JSON.parse(results),
+      zipFileUrl,
+    });
+
+    await newTestResult.save();
+
+    res.status(200).json({ message: 'Data saved successfully', zipFileUrl });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to save data' });
+  }
+});
+
+module.exports = router;
+
+
+
+
+// pages/auth/test-result.js
+import React, { useState } from "react";
+import { useRouter } from "next/router";
+
+const TestResults = () => {
+  const [name, setName] = useState("");
+  const [date, setDate] = useState("");
+  const [patientNumber, setPatientNumber] = useState("");
+  const [age, setAge] = useState("");
+  const [sex, setSex] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [file, setFile] = useState(null);
+  const [results, setResults] = useState([
+    { test: "White cells blood", result: "", unit: "/ L", range: "4.0 - 10.0" },
+    { test: "Hemoglobin", result: "", unit: "g/L", range: "350 - 350" },
+    { test: "Protein", result: "", unit: "g/L", range: "66 - 83" },
+    { test: "Albumin", result: "", unit: "g/L", range: "35 - 52" },
+    { test: "Creatinine", result: "", unit: "mmol/L", range: "44.2 - 79.6" },
+    { test: "Calcium", result: "", unit: "mmol/L", range: "2.2 - 2.7" },
+    { test: "Phosphorus", result: "", unit: "mmol/L", range: "0.8 - 1.5" },
+    { test: "Sodium", result: "", unit: "mmol/L", range: "136 - 146" },
+    { test: "Potassium", result: "", unit: "mmol/L", range: "3.5 - 5.1" },
+    { test: "Chloride", result: "", unit: "mmol/L", range: "101 - 109" },
+    { test: "Uric Acid", result: "", unit: "mmol/L", range: "101 - 109" },
+    { test: "Blood Urea Nitrogen", result: "", unit: "mmol/L", range: "35.9 - 154.7" },
+    { test: "Ig G", result: "", unit: "g/L", range: "2.86 - 7.14" },
+    { test: "Ig A", result: "", unit: "mg/L", range: "0.7 - 1.6" },
+    { test: "Ig M", result: "", unit: "mg/L", range: "700 - 4000" },
+    { test: "heart lp", result: "", unit: "mmol/L", range: "2.2 - 2.7" },
+    { test: "heart", result: "", unit: "mmol/L", range: "0.8 - 1.5" },
+    { test: "heart bh", result: "", unit: "mmol/L", range: "136 - 146" },
+    { test: "heart hy", result: "", unit: "mmol/L", range: "3.5 - 5.1" },
+    { test: "heart ew", result: "", unit: "mmol/L", range: "101 - 109" },
+    { test: "heart Acid", result: "", unit: "mmol/L", range: "101 - 109" },
+  ]);
+  const router = useRouter();
+
+  const handleResultChange = (index, value) => {
+    const newResults = [...results];
+    newResults[index].result = value;
+    setResults(newResults);
+  };
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("labId", localStorage.getItem("labId"));
+    formData.append("name", name);
+    formData.append("date", date);
+    formData.append("patientNumber", patientNumber);
+    formData.append("age", age);
+    formData.append("sex", sex);
+    formData.append("phoneNumber", phoneNumber);
+    formData.append("results", JSON.stringify(results));
+
+    try {
+      const response = await fetch("/api/testResults/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        alert("Data saved successfully");
+        const data = await response.json();
+        // WhatsApp sending logic here (make an API call to send the file link to the user's WhatsApp)
+        router.push("/dashboard");
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to save data: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("An error occurred while saving data. Please try again.");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        Name:{" "}
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        Date:{" "}
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        Patient No:{" "}
+        <input
+          type="text"
+          value={patientNumber}
+          onChange={(e) => setPatientNumber(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        Age:{" "}
+        <input
+          type="text"
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        Sex:{" "}
+        <input
+          type="text"
+          value={sex}
+          onChange={(e) => setSex(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        Phone Number:{" "}
+        <input
+          type="number"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <input type="file" onChange={handleFileChange} required />
+      </div>
+      <div>
+        {results.map((result, index) => (
+          <div key={index}>
+            <span>{result.test}</span>
+            <input
+              type="text"
+              value={result.result}
+              onChange={(e) => handleResultChange(index, e.target.value)}
+            />
+            <span>{result.unit}</span>
+            <span>{result.range}</span>
+          </div>
+        ))}
+      </div>
+      <button type="submit">Submit</button>
+    </form>
+  );
+};
+
+export default TestResults;
