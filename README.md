@@ -708,5 +708,34 @@ const styles = {
 
 export default TestResults;
 
+---------------------------------------------------------------------------------------------------------
+
+// models/TestResult.js
+const mongoose = require('mongoose');
+
+const testResultSchema = new mongoose.Schema({
+  labId: String,
+  name: String,
+  date: Date,
+  patientNumber: String,
+  age: String,
+  sex: String,
+  phoneNumber: String,
+  results: [
+    {
+      test: String,
+      result: String,
+      unit: String,
+      range: String,
+    },
+  ],
+  zipFileUrl: String,
+});
+
+module.exports = mongoose.model('TestResult', testResultSchema);
+
+
+
+
 
 export default ReportModel;
